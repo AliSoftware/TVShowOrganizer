@@ -4,7 +4,7 @@ require 'rexml/document'
 require 'net/http'
 
 module TheTVDB
-  API_KEY = File.read('thetvdb.apikey').chomp.freeze
+  API_KEY = File.read(File.expand_path('thetvdb.apikey', File.dirname(__FILE__))).chomp.freeze
 
   def self.find_shows_for_name(query)
     return nil unless query
