@@ -2,7 +2,7 @@
 
 This is a little ruby tool to automatically rename TV Show video files and move them to the appropriate directory, according to my personal conventions.
 
-### Features
+## Features
 
 * It takes an input folder and output folder as parameters
 * it looks for files with extension `mp4`,`m4v`,`avi` or `mkv` in the input folder (discarding filenames containing `Sample`)
@@ -12,11 +12,32 @@ This is a little ruby tool to automatically rename TV Show video files and move 
 * Once every video files of the input folder have been moved and renamed appropriately, it uses [Kodi](http://kodi.tv/about/)'s [JSON-RPC API](http://kodi.wiki/view/JSON-RPC_API/v6) to refresh my Kodi database so that those shows appear in my Kodi library.
 
 
-### Usage
+## Usage
 
-```
-TVShowsOrganizer::move_files(source_dir, dest_dir, :interactive => true, :kodi_auth => 'Basic eGJtYzp4Ym1j')
+1. the `TheTVDB` API needs an API Key to use it. You need to get one and write it to a file named `thetvdb.apikey` saved next to the other files so that my script can use it.
+2. Then use `tvshows_organizer.rb` as the entry point, invoked either from ruby code (using `TVShowsOrganizer` module) or from the command line
+
+### Invoke from ruby
+
+```ruby
+require 'tvshows_organizer'
+# Search the TheTVDB's show ID of a given show
+TVShowsOrganizer::run_query(:query => 'Game of Thrones')
+# Add a show to the shows.yml database
+TVShowsOrganizer::add_show(:name => 'Game of Thrones', :id => '121361')
+# Move video files to destination, renaming them appropriately.
+TVShowsOrganizer::move_files(source_dir, dest_dir, :interactive => true, :kodi_auth => 'login:pass')
 ```
 
-* Using `:interactive => true`, the script will ask for unknown TV Show names (shows that are not listed in `shows.yml`) if the user want to add it. It will propose every matching show known to TheTVDB and propose to open the show web page on thetvdb.com to ensure that's the correct show we are talking about (as sometimes multiple shows with the same name exists).
-* The `:kodi_auth` option allows you to specify the content of the `Authentication` header for the refresh request (JSON-RPC API) to Kodi. This typically is a Basic Auth, so should be `"Basic #{base64_encode(login+':'+password)}"` followed by the base64-encoded string `login:password`
+### Invoke from the command line
+
+Use `tvshows_organizer.rb --help` to know how to use it and which options are available.
+
+```sh
+# Search the TheTVDB's show ID of a given show
+$ ./tvshows_organizer.rb -q "House of Cards"
+# Add a show to the shows.yml database: use query + interactive mode
+$ ./tvshows_organizer.rb -qi "House of Cards"
+# Move video files to destination, renaming them appropriately.
+$ ./tvshows_organizer.rb -i source_dir dest_dir --kodi login:pass
+```
