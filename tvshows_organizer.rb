@@ -85,6 +85,33 @@ module TVShowsOrganizer
     Log::title('Finished!')
     Kodi::refresh(options[:kodi_auth]) if files_count>0
   end
+  
+  def self.list_last_episodes()
+    shows_db = YAML.load_file(CONFIG_FILE)
+    shows_db.each do |show_title,show_id|
+      Log::title(show_title)
+      # Fetch list of episodes for the show
+      list = TheTVDB.episodes_list(show_id)
+      
+      # Find the last aired and next aired
+      last_aired, next_aired, today = [nil, nil, Date.today]
+      list.flatten.compact.each do |e|
+        next if e[:airdate].nil?
+        last_aired = e if (last_aired.nil? || last_aired[:airdate] <= e[:airdate]) && e[:airdate] <= today
+        next_aired = e if (next_aired.nil? || next_aired[:airdate] >= e[:airdate]) && e[:airdate] > today
+      end
+      
+      ep2str = lambda do |e|
+        "#{e[:season]}x#{e[:episode]} - #{e[:title]} (#{e[:airdate]})"
+      end
+      unless last_aired.nil?
+        Log::success("Last aired: #{ep2str.call(last_aired)}")
+      end
+      unless next_aired.nil?
+        Log::info("Next aired: #{ep2str.call(next_aired)}")
+      end
+    end
+  end
 end
 
 
@@ -115,6 +142,9 @@ if __FILE__ == $0
     opts.on('-i', %q(Prompt to add a show to the config when queried or unknown)) do
       options[:interactive] = true
     end
+    opts.on('-l', '--list', %q(List the last episode of each known series)) do
+      options[:list] = true
+    end
     opts.on('--kodi login:pass', %q(The login and password to use to access the Kodi HTTP interface)) do |login_pass|
       options[:kodi_auth] = login_pass
     end
@@ -124,6 +154,8 @@ if __FILE__ == $0
 
   if options[:query]
     TVShowsOrganizer::run_query(options)
+  elsif options[:list]
+    TVShowsOrganizer::list_last_episodes()
   else
     if ARGV.count < 2
       Log::error('You need to specify source and destination directories!')

@@ -45,4 +45,32 @@ module TheTVDB
     "http://thetvdb.com/?tab=series&id=#{show_id}#fanart"
   end
 
+  def self.episodes_list(show_id)
+    return nil unless show_id
+
+    url = URI.parse("http://thetvdb.com/api/#{API_KEY}/series/#{show_id}/all/en.xml")
+    xml_str = Net::HTTP.get(url) # get_response takes an URI object
+    begin
+      doc = REXML::Document.new(xml_str)
+    rescue
+      Log::error("Invalid XML at URL #{url}")
+      return nil
+    end
+    
+    list = []
+    doc.elements.each('Data/Episode') do |e|
+      season = e.elements['SeasonNumber'].text.to_i
+      episode = e.elements['EpisodeNumber'].text.to_i
+      title = e.elements['EpisodeName'].text
+      airdate_text = e.elements['FirstAired'].text
+      airdate = airdate_text ? Date.strptime(airdate_text, '%Y-%m-%d') : nil
+      list[season] ||= []
+      list[season][episode-1] = {
+        :season => season, :episode => episode,
+        :airdate => airdate, :title => title }
+    end
+    list
+  end
+
 end
+
