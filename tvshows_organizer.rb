@@ -86,15 +86,16 @@ module TVShowsOrganizer
     Kodi::refresh(options[:kodi_auth]) if files_count>0
   end
   
-  def self.list_last_episodes()
+  def self.list_last_episodes(destination = nil)
     shows_db = YAML.load_file(CONFIG_FILE)
+    today = Date.today
     shows_db.each do |show_title,show_id|
       Log::title(show_title)
       # Fetch list of episodes for the show
       list = TheTVDB.episodes_list(show_id)
       
       # Find the last aired and next aired
-      last_aired, next_aired, today = [nil, nil, Date.today]
+      last_aired, next_aired = [nil, nil]
       list.flatten.compact.each do |e|
         next if e[:airdate].nil?
         last_aired = e if (last_aired.nil? || last_aired[:airdate] <= e[:airdate]) && e[:airdate] <= today
@@ -105,7 +106,20 @@ module TVShowsOrganizer
         "#{e[:season]}x#{e[:episode]} - #{e[:title]} (#{e[:airdate]})"
       end
       unless last_aired.nil?
-        Log::success("Last aired: #{ep2str.call(last_aired)}")
+        log_text = "Last aired: #{ep2str.call(last_aired)}"
+        if destination
+          show_dir = Pathname.new(destination) + show_title + "Season #{last_aired[:season]}"
+          ep_num = "#{last_aired[:season]}x#{last_aired[:episode].to_s.rjust(2,'0')}"
+          filename = "#{show_title} - {?x??+,}#{ep_num}*"
+          # puts "Testing: <#{show_dir + filename}>"
+          if Dir.glob("#{show_dir + filename}.*").count > 0
+            Log::success(log_text + " [OK]")
+          else
+            Log::error(log_text + " [Missing]")
+          end
+        else
+          Log::info(log_text)
+        end
       end
       unless next_aired.nil?
         Log::info("Next aired: #{ep2str.call(next_aired)}")
@@ -155,7 +169,8 @@ if __FILE__ == $0
   if options[:query]
     TVShowsOrganizer::run_query(options)
   elsif options[:list]
-    TVShowsOrganizer::list_last_episodes()
+    dest = ARGV.count < 1 ? nil : ARGV[0]
+    TVShowsOrganizer::list_last_episodes(dest)
   else
     if ARGV.count < 2
       Log::error('You need to specify source and destination directories!')

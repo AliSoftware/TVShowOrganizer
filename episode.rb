@@ -11,8 +11,9 @@ class Episode
   attr_reader :season
   attr_reader :episodes
 
-  def initialize(filename, show_lut)
-    m = REGEXP.match(filename)
+  def initialize(filepath, show_lut)
+    m = REGEXP.match(File.basename(filepath))
+    m = REGEXP.match(File.dirname(filepath)) if m.nil?
     return if m.nil?
     @guessed_name = m[1].gsub('.',' ')
     @season = m[2].to_i

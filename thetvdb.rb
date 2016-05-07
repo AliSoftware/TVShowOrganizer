@@ -59,8 +59,13 @@ module TheTVDB
     
     list = []
     doc.elements.each('Data/Episode') do |e|
-      season = e.elements['SeasonNumber'].text.to_i
-      episode = e.elements['EpisodeNumber'].text.to_i
+      seasonNode = e.elements['SeasonNumber']
+      next if seasonNode.nil?
+      season = seasonNode.text.to_i
+      episodeNode = e.elements['EpisodeNumber']
+      next if episodeNode.nil?
+      episode = episodeNode.text.to_i
+      next if episode <= 0
       title = e.elements['EpisodeName'].text
       airdate_text = e.elements['FirstAired'].text
       airdate = airdate_text ? Date.strptime(airdate_text, '%Y-%m-%d') : nil

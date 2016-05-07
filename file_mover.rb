@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-require 'Pathname'
+require 'pathname'
 require 'fileutils'
 require File.expand_path('episode', File.dirname(__FILE__))
   
@@ -79,7 +79,7 @@ class FileMover
           next
         end
         
-        ep = Episode.new(File.basename(filename), @show_lut)
+        ep = Episode.new(filename, @show_lut)
         if ep.show_id.nil? && interactive?
           shows = TheTVDB::find_shows_for_name(ep.guessed_name) || []
           shows.each do |show|
@@ -89,7 +89,7 @@ class FileMover
               TVShowsOrganizer::add_show({:name => ep.guessed_name, :id => show[:id]})
               @show_lut[ep.guessed_name] = show[:id]
               # Refetch
-              ep = Episode.new(File.basename(filename), @show_lut)
+              ep = Episode.new(filename, @show_lut)
               break
             end
           end
