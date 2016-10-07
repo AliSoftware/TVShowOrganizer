@@ -64,7 +64,7 @@ module TVShowsOrganizer
   # @param [Hash<Symbol,String>] options
   #        The hash containing the parameters for the query.
   #        This hash may contain the following keys:
-  #         :kodi_auth    : The 'login:pass' pair to use for Kodi's refresh request
+  #         :kodi         : Hash with keys :credentials ('login:pass'), :host and :port, to use for Kodi's refresh request
   #         :interactive  : If true, prompt to add the show to `shows.yml`
   #         :dry_run      : If true, no file will actually be moved,
   #                         but logs will be printed so you can check which
@@ -83,7 +83,9 @@ module TVShowsOrganizer
     files_count = fm.move_finished_downloads()
 
     Log::title('Finished!')
-    Kodi::refresh(options[:kodi_auth]) if files_count>0
+
+    kodi_params = options[:kodi]
+    Kodi::refresh(kodi_params[:credentials], kodi_params[:host], kodi_params[:port]) if files_count>0 && !kodi_params.nil?
   end
   
   def self.list_last_episodes(destination = nil)
@@ -159,8 +161,13 @@ if __FILE__ == $0
     opts.on('-l', '--list', %q(List the last episode of each known series)) do
       options[:list] = true
     end
-    opts.on('--kodi login:pass', %q(The login and password to use to access the Kodi HTTP interface)) do |login_pass|
-      options[:kodi_auth] = login_pass
+    opts.on('--kodi login:pass@host:port', %q(The login/password and host/port to use to access the Kodi HTTP interface)) do |kodi_string|
+      (login_pass, host_port, rest) = kodi_string.split('@')
+      Log::error("Too many '@' in the Kodi parameters!") unless rest.nil?
+      (host, port, rest) = host_port.split(':')
+      Log::error("Too many ':' in the host:port part of Kodi parameters!") unless rest.nil?
+      Log::error("Port should be numeric") unless port.to_i > 0
+      options[:kodi] = { :credentials => login_pass, :host => host, :port => port.to_i }
     end
 
     opts.on('-h', '--help') { puts opts; exit 1 }

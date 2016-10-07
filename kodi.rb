@@ -5,13 +5,17 @@ module Kodi
   #
   # @param [String] login_pass
   #        The 'login:pass' pair to use to access Kodi's HTTP API
+  # @param [String] host
+  #        The host to use to access Kodi's HTTP API
+  # @param [Int] port
+  #        The port to use to access Kodi's HTTP API
   #
-  def self.refresh(login_pass)
+  def self.refresh(login_pass, host, port)
     json_body = '{ "jsonrpc":"2.0","method":"VideoLibrary.Scan","id":"AliScript" }'
     headers = { 'Content-Type' => 'application/json' }
     headers['Authorization'] = 'Basic ' + Base64.encode64(login_pass) if login_pass
 
-    req = Net::HTTP.new('localhost', 9870)
+    req = Net::HTTP.new(host, port)
     resp, _ = req.post('/jsonrpc', json_body, headers)
     if resp.code.to_i == 200
       Log::success('Kodi Database update started')
