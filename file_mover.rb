@@ -34,7 +34,7 @@ class FileMover
       end
     end
     
-    target_basename = "#{ep.show_name} - #{epNum} - #{epTitle}"
+    target_basename = "#{ep.show_name} - #{epNum} - #{epTitle.gsub(':', ' -')}"
     show_dir + season_dirname + (target_basename + ext)
   end
 
