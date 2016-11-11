@@ -114,7 +114,7 @@ module TVShowsOrganizer
           ep_num = "#{last_aired[:season]}x#{last_aired[:episode].to_s.rjust(2,'0')}"
           filename = "#{show_title} - {?x??+,}#{ep_num}*"
           # puts "Testing: <#{show_dir + filename}>"
-          if Dir.glob("#{show_dir + filename}.*").count > 0
+          if Dir.glob("#{show_dir + filename}.*", File::FNM_CASEFOLD).count > 0
             Log::success(log_text + " [OK]")
           else
             Log::error(log_text + " [Missing]")
