@@ -3,7 +3,8 @@
 require File.expand_path('thetvdb', File.dirname(__FILE__))
 
 class Episode
-  REGEXP = /^(.*)\.S(\d{1,2})E(\d{2})(?:E(\d{2}))?\./i.freeze
+  REGEXP1 = /^(.*)\.S(\d{1,2})E(\d{2})(?:E(\d{2}))?\./i.freeze
+  REGEXP2 = /^(.*)\.(\d{1,2})x(\d{2})(?:[-+](\d{2}))?\./i.freeze
 
   attr_reader :guessed_name
   attr_reader :show_id
@@ -12,9 +13,12 @@ class Episode
   attr_reader :episodes
 
   def initialize(filepath, show_lut)
-    m = REGEXP.match(File.basename(filepath))
-    m = REGEXP.match(File.dirname(filepath)) if m.nil?
+    m = REGEXP1.match(File.basename(filepath))
+    m = REGEXP1.match(File.dirname(filepath)) if m.nil?
+	m = REGEXP2.match(File.basename(filepath)) if m.nil?
+	m = REGEXP2.match(File.dirname(filepath)) if m.nil?
     return if m.nil?
+
     @guessed_name = m[1].gsub('.',' ')
     @season = m[2].to_i
     @episodes = m[3..4].compact.map(&:to_i)
