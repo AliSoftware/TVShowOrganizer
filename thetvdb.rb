@@ -31,14 +31,14 @@ module TheTVDB
     return nil unless show_id && season && episode
 
     url = URI.parse("http://thetvdb.com/api/#{API_KEY}/series/#{show_id}/default/#{season}/#{episode}/en.xml")
-    xml_str = Net::HTTP.get(url) # get_response takes an URI object
+    res = Net::HTTP.get_response(url)
     begin
-      doc = REXML::Document.new(xml_str)
+      doc = REXML::Document.new(res.body)
+      doc.elements['Data/Episode/EpisodeName'].text
     rescue
-      Log::error("Invalid XML at URL #{url}")
+      Log::error("Invalid XML at URL #{url}. (HTTP code: #{res.code} - XML = #{res.body.to_s})")
       return nil
     end
-    doc.elements['Data/Episode/EpisodeName'].text
   end
   
   def self.url(show_id)
