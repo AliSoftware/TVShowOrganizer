@@ -95,7 +95,11 @@ module TVShowsOrganizer
       Log::title(show_title)
       # Fetch list of episodes for the show
       list = TheTVDB.episodes_list(show_id)
-      
+      if list.nil?
+        Log::error("Can't retrieve list of episodes for this show")
+        next
+      end
+
       # Find the last aired and next aired
       last_aired, next_aired = [nil, nil]
       list.flatten.compact.each do |e|
