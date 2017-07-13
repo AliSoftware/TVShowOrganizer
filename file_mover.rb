@@ -78,11 +78,13 @@ class FileMover
     end
   end
 
-  # Iterate over all movie files in the @source_dir and move them
-  # in the appropriate Show/Season/Episode.ext destination
+  # Iterate over all movie files (mp4,mkv,avi,m4v) in the @source_dir
+  # and move them in the appropriate Show/Season/Episode.ext destination
+  #
+  # Note: this will skip files in the '#recycle/' directory, that are used as the trash folder on Synology NAS
   #
   def move_finished_downloads
-    Log::info('DRY MODE ON') if dry_run
+    Log::info('DRY MODE ON') if @dry_run
 
     unless @source_dir.directory? && @dest_dir.directory?
       Log::error('Source and Destination must be existing directories')
@@ -91,7 +93,7 @@ class FileMover
       
     files_count = 0
     Dir.chdir(@source_dir.to_s) do
-      movie_files = Dir.glob('**/*.{mp4,mkv,avi,m4v}')
+      movie_files = Dir.glob('**/*.{mp4,mkv,avi,m4v}').reject { |f| f.start_with?('#recycle/') }
       Log::info("#{movie_files.count} video file(s) found.")
       movie_files.each do |filename|
         Log::title(filename)
