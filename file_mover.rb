@@ -5,6 +5,7 @@ require 'fileutils'
 require File.expand_path('episode', File.dirname(__FILE__))
   
 class FileMover
+  attr_accessor :minimum_file_size
   attr_accessor :dry_run
   attr_accessor :interactive
   alias :interactive? :interactive
@@ -13,9 +14,13 @@ class FileMover
     @source_dir = Pathname.new(source_dir)
     @dest_dir = Pathname.new(dest_dir)
     @show_lut = show_lut
+    @minimum_file_size = 10*1024*1024 # Files smaller than 10Mo are probably samples, not the real episode
     @dry_run = false
+    @interactive = false
   end
-    
+
+  # @return [Pathname]
+  #
   def target_path(ep, ext)
     show_dir = @dest_dir + ep.show_name
     season_dirname = "Season #{ep.season}"
@@ -38,6 +43,14 @@ class FileMover
     show_dir + season_dirname + (target_basename + ext)
   end
 
+  # Move a single file to destination, based on the episode metainfo (show, season, episode, title)
+  # Creating intermediate directories if necessary
+  #
+  # @param [String] filename
+  #        The name of the file to move
+  # @param [Episode] ep
+  #        The Episode object containing the episode metainfo (show, season, episode(s), title(s), …)
+  #
   def move_episode(filename, ep)
     if ep.titles && ep.titles.all? # No nil episode title
       target_path = target_path(ep, File.extname(filename))
@@ -51,15 +64,23 @@ class FileMover
         Log::info("Creating directory for #{season_dir.basename}")
         season_dir.mkdir()
       end
-      Log::success("Moving to #{target_path.to_s}")
-      FileUtils.mv(filename, target_path.to_s) unless @dry_run
-      true
+      if File.exist?(target_path)
+        Log::error("File #{target_path.to_s} already exists.")
+        false
+      else
+        Log::success("Moving to #{target_path.to_s}")
+        FileUtils.mv(filename, target_path.to_s) unless @dry_run
+        true
+      end
     else
       Log::error("Unable to find title for #{filename}")
       false
     end
   end
 
+  # Iterate over all movie files in the @source_dir and move them
+  # in the appropriate Show/Season/Episode.ext destination
+  #
   def move_finished_downloads
     Log::info('DRY MODE ON') if dry_run
 
@@ -74,12 +95,15 @@ class FileMover
       Log::info("#{movie_files.count} video file(s) found.")
       movie_files.each do |filename|
         Log::title(filename)
-        if filename =~ /\/sample\//i
-          Log::info("Skipping (sample)")
+        if File.size(filename) < @minimum_file_size
+          Log::info("Skipping (file too small, probably sample)")
           next
         end
         
+        # Guess the episode info (TVShow, season, episode number, episode title) based on the file name
         ep = Episode.new(filename, @show_lut)
+
+        # If episode not found but we are in interactive mode, prompt to add the show to the show_lut
         if ep.show_id.nil? && interactive?
           shows = TheTVDB::find_shows_for_name(ep.guessed_name) || []
           shows.each do |show|
@@ -94,6 +118,7 @@ class FileMover
             end
           end
         end
+
         if ep.show_id.nil?
           Log::error("Unable to find show matching '#{ep.guessed_name}'")
         else

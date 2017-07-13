@@ -2,6 +2,12 @@
 
 require File.expand_path('thetvdb', File.dirname(__FILE__))
 
+# This class represent a TVShow episode's meta-information
+# Especially the TVShow ID (in thetvdb.com), name, season number and episode number
+#
+# It is also able to handle multi-part episodes, and fetch the title of a givn episode
+# using the TheTVDB Module and thetvdb.com API
+# 
 class Episode
   REGEXP1 = /^(.*)\.S(\d{1,2})E(\d{2})(?:E(\d{2}))?\./i.freeze
   REGEXP2 = /^(.*)\.(\d{1,2})x(\d{2})(?:[-+](\d{2}))?\./i.freeze
@@ -12,11 +18,19 @@ class Episode
   attr_reader :season
   attr_reader :episodes
 
+  # Create an Episode instance extracting the meta-information of an episode
+  # From a file name and the Show Lookup Table
+  # 
+  # @param [String] filepath
+  #         The path to the file to construct the metainformation from
+  # @param [Hash<String, Int>] show_lut
+  #        Note: this LUT is generally read from the shows.yml YAML file
+  #
   def initialize(filepath, show_lut)
     m = REGEXP1.match(File.basename(filepath))
     m = REGEXP1.match(File.dirname(filepath)) if m.nil?
-	m = REGEXP2.match(File.basename(filepath)) if m.nil?
-	m = REGEXP2.match(File.dirname(filepath)) if m.nil?
+    m = REGEXP2.match(File.basename(filepath)) if m.nil?
+    m = REGEXP2.match(File.dirname(filepath)) if m.nil?
     return if m.nil?
 
     @guessed_name = m[1].gsub('.',' ')
