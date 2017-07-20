@@ -78,7 +78,11 @@ class FileMover
     end
   end
 
-  # Iterate over all movie files (mp4,mkv,avi,m4v) in the @source_dir
+  MOVIE_EXTENSIONS = %w(mp4 mkv avi m4v).freeze
+  SUBTITLES_EXTENSIONS = %w(srt sub).freeze
+  ALL_EXTENSIONS = (MOVIE_EXTENSIONS + SUBTITLES_EXTENSIONS).freeze
+
+# Iterate over all movie files (mp4,mkv,avi,m4v) and subtitles (srt, sub) in the @source_dir
   # and move them in the appropriate Show/Season/Episode.ext destination
   #
   # Note: this will skip files in the '#recycle/' directory, that are used as the trash folder on Synology NAS
@@ -93,11 +97,11 @@ class FileMover
       
     files_count = 0
     Dir.chdir(@source_dir.to_s) do
-      movie_files = Dir.glob('**/*.{mp4,mkv,avi,m4v}').reject { |f| f.start_with?('#recycle/') }
-      Log::info("#{movie_files.count} video file(s) found.")
+      movie_files = Dir.glob('**/*.{' + ALL_EXTENSIONS.join(',') + '}').reject { |f| f.start_with?('#recycle/') }
+      Log::info("#{movie_files.count} video & sub file(s) found.")
       movie_files.each do |filename|
         Log::title(filename)
-        if File.size(filename) < @minimum_file_size
+        if MOVIE_EXTENSIONS.include?(File.extname(filename)) && File.size(filename) < @minimum_file_size
           Log::info("Skipping (file too small, probably sample)")
           next
         end
