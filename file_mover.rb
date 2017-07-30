@@ -82,7 +82,7 @@ class FileMover
   SUBTITLES_EXTENSIONS = %w(srt sub).freeze
   ALL_EXTENSIONS = (MOVIE_EXTENSIONS + SUBTITLES_EXTENSIONS).freeze
 
-# Iterate over all movie files (mp4,mkv,avi,m4v) and subtitles (srt, sub) in the @source_dir
+  # Iterate over all movie files (mp4,mkv,avi,m4v) and subtitles (srt, sub) in the @source_dir
   # and move them in the appropriate Show/Season/Episode.ext destination
   #
   # Note: this will skip files in the '#recycle/' directory, that are used as the trash folder on Synology NAS
@@ -101,7 +101,7 @@ class FileMover
       Log::info("#{movie_files.count} video & sub file(s) found.")
       movie_files.each do |filename|
         Log::title(filename)
-        if MOVIE_EXTENSIONS.include?(File.extname(filename)) && File.size(filename) < @minimum_file_size
+        if MOVIE_EXTENSIONS.include?(File.extname(filename)[1..-1]) && File.size(filename) < @minimum_file_size
           Log::info("Skipping (file too small, probably sample)")
           next
         end
