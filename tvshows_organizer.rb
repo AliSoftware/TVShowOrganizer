@@ -120,6 +120,8 @@ module TVShowsOrganizer
           # puts "Testing: <#{show_dir + filename}>"
           if Dir.glob("#{show_dir + filename}.*", File::FNM_CASEFOLD).count > 0
             Log::success(log_text + " [OK]")
+          elsif last_aired[:season] == 0
+            Log::warning(log_text + " [Missing Special]")
           else
             Log::error(log_text + " [Missing]")
           end

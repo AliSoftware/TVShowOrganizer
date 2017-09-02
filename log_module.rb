@@ -4,19 +4,23 @@ module Log
   def self.title(str) # bg yellow
     puts "\e[44;37m#{str}\e[0m"
   end
-  
+
   def self.error(str)
     puts "\e[1;31m   ! #{str}\e[0m"
   end
-  
+
   def self.info(str)
     puts "\e[1;33m   > #{str}\e[0m"
   end
-  
+
   def self.success(str)
     puts "\e[1;32m   √ #{str}\e[0m"
   end
-  
+
+  def self.warning(str)
+    puts "\e[1;35m   ! #{str}\e[0m"
+  end
+
   def self.prompt(str, url = nil)
     prompt = "\e[1;36m   ! #{str} [y/n]?\e[0m "
     url_info = ' '*10 + "\e[0;37m (use '?' to show in browser)\e[0m"
@@ -49,3 +53,4 @@ module Log
   end
   
 end
+
