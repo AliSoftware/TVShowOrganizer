@@ -4,7 +4,12 @@ require 'rexml/document'
 require 'net/http'
 
 module TheTVDB
-  API_KEY = File.read(File.expand_path('thetvdb.apikey', File.dirname(__FILE__))).chomp.freeze
+  api_key_file = File.expand_path('thetvdb.apikey', File.dirname(__FILE__))
+  unless File.exist?(api_key_file)
+    Log::error('Missing thetvdb.apikey file')
+    exit 1
+  end
+  API_KEY = File.read(api_key_file).chomp.freeze
 
   def self.find_shows_for_name(query)
     return nil unless query

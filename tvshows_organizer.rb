@@ -88,11 +88,41 @@ module TVShowsOrganizer
     Kodi::refresh(kodi_params[:credentials], kodi_params[:host], kodi_params[:port]) if files_count>0 && !kodi_params.nil?
   end
   
-  def self.list_last_episodes(destination = nil)
+  # Return the local file corresponding to the last episode of the show for the given show path
+  #
+  # @param [Pathname] show_path
+  #        The Pathname to the show's directory to search for the last season & episode
+  # @return [Hash<Symbol, String>] 
+  #         A tuple with keys :num and :title describing the last episode found locally for the show
+  #         Or nil if none was found
+  #
+  def self.last_local_episode(show_path)
+    # Return a season number from a Pathname to a Season dir
+    get_season = lambda do |p|
+      p.basename.to_s.sub(/^Season /,'').to_i
+    end
+
+    season_dirs = show_path.children.select { |p| p.directory? && p.basename.to_s.start_with?('Season ') }
+    sorted_seasons = season_dirs.sort { |p1,p2| get_season.call(p1) <=> get_season.call(p2) }
+    last_season = sorted_seasons.last
+    return nil if last_season.nil?
+    last_ep = last_season.children.select { |p| p.file? && !p.to_s.start_with?('.') }.sort.last
+    basename = last_ep.basename(last_ep.extname).to_s
+    match = basename.match(/^.+ - ([0-9x+-]+) - (.+)$/)
+    return match.nil? ? nil : { :num => match[1], :title => match[2] }
+  end
+
+  def self.list_last_episodes(destination = nil, show_locals = false)
     shows_db = YAML.load_file(CONFIG_FILE)
     today = Date.today
     shows_db.each do |show_title,show_id|
       Log::title(show_title)
+
+      if destination && show_locals
+        local = last_local_episode(Pathname.new(destination) + show_title)
+        Log::info("Last local: #{local[:num]} - #{local[:title]}") if local
+      end
+
       # Fetch list of episodes for the show
       list = TheTVDB.episodes_list(show_id)
       if list.nil?
@@ -167,6 +197,9 @@ if __FILE__ == $0
     opts.on('-l', '--list', %q(List the last episode of each known series)) do
       options[:list] = true
     end
+    opts.on('--local', %q(When used with --list, also log the last local episode)) do
+      options[:local] = true
+    end
     opts.on('--kodi login:pass@host:port', %q(The login/password and host/port to use to access the Kodi HTTP interface)) do |kodi_string|
       (login_pass, host_port, rest) = kodi_string.split('@')
       Log::error("Too many '@' in the Kodi parameters!") unless rest.nil?
@@ -183,7 +216,7 @@ if __FILE__ == $0
     TVShowsOrganizer::run_query(options)
   elsif options[:list]
     dest = ARGV.count < 1 ? nil : ARGV[0]
-    TVShowsOrganizer::list_last_episodes(dest)
+    TVShowsOrganizer::list_last_episodes(dest, options[:local])
   else
     if ARGV.count < 2
       Log::error('You need to specify source and destination directories!')
