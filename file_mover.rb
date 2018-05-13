@@ -2,6 +2,7 @@
 
 require 'pathname'
 require 'fileutils'
+require 'i18n'
 require File.expand_path('episode', File.dirname(__FILE__))
   
 class FileMover
@@ -19,6 +20,31 @@ class FileMover
     @interactive = false
   end
 
+  # Sanitize the string to avoid special characters that could cause issues with
+  # various file systems (smb, …) or MediaCenters (Infuse, …)
+  #
+  # @param [String] filename
+  #        The basename of the file name to sanitize.
+  #
+  # @note Be sure to path a basefile and not a full path, as '/' characters will be replaced by the sanitize process
+  #
+  # @return [String]
+  #
+  def sanitize(filename)
+    new_name = I18n.transliterate(filename, '_')
+      .gsub('?','')
+      .gsub(':',' -')
+      .gsub('&','+')
+      .gsub(/[^A-Za-z0-9 _+.,;=*'"\[\]\(\)-]/, '_')
+  end
+
+  # Generate the target path (directory + filename) for a given episode given its season, episode# & title
+  #
+  # @param [Episode] ep
+  #        The episode for which we want to generate the target path
+  # @param [String] ext
+  #        The file extension for the target path
+  #
   # @return [Pathname]
   #
   def target_path(ep, ext)
@@ -39,7 +65,7 @@ class FileMover
       end
     end
     
-    target_basename = "#{ep.show_name} - #{epNum} - #{epTitle.gsub(':', ' -')}"
+    target_basename = sanitize("#{ep.show_name} - #{epNum} - #{epTitle}")
     show_dir + season_dirname + (target_basename + ext)
   end
 
