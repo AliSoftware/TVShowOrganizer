@@ -18,6 +18,8 @@ class FileMover
     @minimum_file_size = 10*1024*1024 # Files smaller than 10Mo are probably samples, not the real episode
     @dry_run = false
     @interactive = false
+
+    I18n.available_locales = [:en, :fr]
   end
 
   # Sanitize the string to avoid special characters that could cause issues with
