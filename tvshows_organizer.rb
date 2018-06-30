@@ -38,12 +38,12 @@ module TVShowsOrganizer
   #         :interactive  : If true, prompt to add the show to `shows.yml`
   #
   def self.run_query(options)
-    shows = TheTVDB::find_shows_for_name(options[:query])
+    shows = TheTVDB.instance.find_shows_for_name(options[:query])
     if shows.count > 0
       shows.each do |show|
         Log::success("#{show[:name]} ==> #{show[:id]}")
         if options[:interactive]
-          if Log::prompt('Add to list', TheTVDB::url(show[:id]))
+          if Log::prompt('Add to list', TheTVDB.instance.url(show[:id]))
             add_show(show)
             break
           end
@@ -124,7 +124,7 @@ module TVShowsOrganizer
       end
 
       # Fetch list of episodes for the show
-      list = TheTVDB.episodes_list(show_id)
+      list = TheTVDB.instance.episodes_list(show_id)
       if list.nil?
         Log::error("Can't retrieve list of episodes for this show")
         next
@@ -139,7 +139,7 @@ module TVShowsOrganizer
       end
       
       ep2str = lambda do |e|
-        "#{e[:season]}x#{e[:episode]} - #{e[:title]} (#{e[:airdate]})"
+        "#{e[:season]}x#{e[:episode].to_s.rjust(2,'0')} - #{e[:title]} (#{e[:airdate]})"
       end
       unless last_aired.nil?
         log_text = "Last aired: #{ep2str.call(last_aired)}"

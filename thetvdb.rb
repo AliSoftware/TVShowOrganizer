@@ -1,84 +1,113 @@
 #!/usr/bin/env ruby
 
-require 'rexml/document'
 require 'net/http'
+require 'json'
 
-module TheTVDB
-  api_key_file = File.expand_path('thetvdb.apikey', File.dirname(__FILE__))
-  unless File.exist?(api_key_file)
-    Log::error('Missing thetvdb.apikey file')
-    exit 1
+class TheTVDB
+  # attr_reader :api_key, :jwt, :http
+
+  def initialize
+    api_key_file = File.expand_path('thetvdb.apikey', File.dirname(__FILE__))
+    unless File.exist?(api_key_file)
+      Log::error('Missing thetvdb.apikey file')
+      exit 1
+    end
+    @api_key = File.read(api_key_file).chomp
+
+    @http = Net::HTTP.new("api.thetvdb.com", 443)
+    @http.use_ssl = true
   end
-  API_KEY = File.read(api_key_file).chomp.freeze
 
-  def self.find_shows_for_name(query)
+  def self.instance
+    @@instance ||= TheTVDB.new
+  end
+
+  def jwt
+    @jwt ||= begin
+      jwt_res = @http.request_post('/login',
+        { :apikey => @api_key }.to_json,
+        { 'Content-Type' => 'application/json', 'Accept' => 'application/json' }
+      )
+      JSON.load(jwt_res.body)
+    end
+  end
+
+  # Executes an API request to TheTVDB, authenticating beforehand if necessary,
+  # parsing the result as JSON and logging potential errors
+  #
+  # @param [String] url
+  #
+  # @return [(Hash, Hash)]
+  #         A tuple containing the data entry and the links entry
+  #
+  def request(url)
+    headers = {
+      'Accept' => 'application/json',
+      'Accept-Language' => 'en',
+      'Authorization' => "Bearer #{jwt['token']}"
+    }
+    res = @http.request_get(url, headers)
+    begin
+      json = JSON.load(res.body)
+      Log::error(json['Error']) if json['Error']
+      [json['data'], json['links']]
+    rescue
+      Log::error("Invalid JSON at URL #{url}. (HTTP code: #{res.code} - Body = #{res.body.to_s})")
+      return [nil, nil]
+    end
+  end
+
+  ######
+
+  def find_shows_for_name(query)
     return nil unless query
     
-    url = URI.parse("http://thetvdb.com/api/GetSeries.php?seriesname=#{URI.escape(query)}")
-    xml_str = Net::HTTP.get(url)
-    begin
-      doc = REXML::Document.new(xml_str)
-    rescue
-      Log::error("Invalid XML at URL #{url}")
-      return nil
+    data, _ = request("/search/series?name=#{URI.escape(query)}")
+    return nil unless data
+    data.map do |d|
+      {
+        :name => d['seriesName'],
+        :id => d['id'],
+        :date => d['firstAired'],
+        :overview => d['overview']
+      }
     end
-    
-    matches = []
-    doc.elements.each('Data/Series') do |e|
-      show_id = e.elements['seriesid'].text.to_i
-      show_name = e.elements['SeriesName'].text
-      matches << { :name => show_name, :id => show_id }
-    end
-    matches
   end
   
-  def self.title_for_episode(show_id, season, episode)
+  def title_for_episode(show_id, season, episode)
     return nil unless show_id && season && episode
 
-    url = URI.parse("http://thetvdb.com/api/#{API_KEY}/series/#{show_id}/default/#{season}/#{episode}/en.xml")
-    res = Net::HTTP.get_response(url)
-    begin
-      doc = REXML::Document.new(res.body)
-      doc.elements['Data/Episode/EpisodeName'].text
-    rescue
-      Log::error("Invalid XML at URL #{url}. (HTTP code: #{res.code} - XML = #{res.body.to_s})")
-      return nil
-    end
+    data, _ = request("/series/#{show_id}/episodes/query?airedSeason=#{season}&airedEpisode=#{episode}")
+    return nil unless data
+    data.first['episodeName']
   end
   
-  def self.url(show_id)
+  def url(show_id)
     "http://thetvdb.com/?tab=series&id=#{show_id}#fanart"
   end
 
-  def self.episodes_list(show_id)
+  def episodes_list(show_id)
     return nil unless show_id
 
-    url = URI.parse("http://thetvdb.com/api/#{API_KEY}/series/#{show_id}/all/en.xml")
-    xml_str = Net::HTTP.get(url) # get_response takes an URI object
-    begin
-      doc = REXML::Document.new(xml_str)
-    rescue
-      Log::error("Invalid XML at URL #{url}")
-      return nil
-    end
-    
     list = []
-    doc.elements.each('Data/Episode') do |e|
-      seasonNode = e.elements['SeasonNumber']
-      next if seasonNode.nil?
-      season = seasonNode.text.to_i
-      episodeNode = e.elements['EpisodeNumber']
-      next if episodeNode.nil?
-      episode = episodeNode.text.to_i
-      next if episode <= 0
-      title = e.elements['EpisodeName'].text
-      airdate_text = e.elements['FirstAired'].text
-      airdate = airdate_text ? Date.strptime(airdate_text, '%Y-%m-%d') : nil
-      list[season] ||= []
-      list[season][episode-1] = {
-        :season => season, :episode => episode,
-        :airdate => airdate, :title => title }
-    end
+    page = 1
+    begin
+      data, links = request("/series/#{show_id}/episodes?page=#{page}")
+      break unless data
+      list += data.map do |d|
+        airdate = begin
+          Date.strptime(d['firstAired'], '%Y-%m-%d')
+        rescue ArgumentError
+          nil
+        end
+        {
+          :season => d['airedSeason'], :episode => d['airedEpisodeNumber'],
+          :title => d['episodeName'],
+          :airdate => airdate
+        }
+      end
+      page = links['next']
+    end until page.nil?
     list
   end
 

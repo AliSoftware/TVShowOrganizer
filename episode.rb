@@ -9,7 +9,7 @@ require File.expand_path('thetvdb', File.dirname(__FILE__))
 # using the TheTVDB Module and thetvdb.com API
 # 
 class Episode
-  REGEXP1 = /^(.*)\.S(\d{1,2})E(\d{2})(?:E(\d{2}))?\./i.freeze
+  REGEXP1 = /^(.*)\.S(\d{1,2})E(\d{2})(?:[-+]?E(\d{2}))?\./i.freeze
   REGEXP2 = /^(.*)\.(\d{1,2})x(\d{2})(?:[-+](\d{2}))?\./i.freeze
 
   attr_reader :guessed_name
@@ -42,7 +42,7 @@ class Episode
   end
 
   def titles
-    @titles ||= episodes.map { |ep| TheTVDB::title_for_episode(show_id, season, ep).strip }
+    @titles ||= episodes.map { |ep| TheTVDB.instance.title_for_episode(show_id, season, ep).strip }
   end
 
   def to_s

@@ -139,9 +139,9 @@ class FileMover
 
         # If episode not found but we are in interactive mode, prompt to add the show to the show_lut
         if ep.show_id.nil? && interactive?
-          shows = TheTVDB::find_shows_for_name(ep.guessed_name) || []
+          shows = TheTVDB.instance.find_shows_for_name(ep.guessed_name) || []
           shows.each do |show|
-            url = TheTVDB::url(show[:id])
+            url = TheTVDB.instance.url(show[:id])
             if Log::prompt("Map '#{ep.guessed_name}' to show '#{show[:name]}' with ID #{show[:id]}", url)
               # /!\ Add show with the guessed name, not its real name
               TVShowsOrganizer::add_show({:name => ep.guessed_name, :id => show[:id]})
