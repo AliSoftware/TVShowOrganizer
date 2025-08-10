@@ -1,6 +1,9 @@
 # MacOS
 .DS_Store
 
+# Synology
+@eaDir
+
 # Ruby
 vendor/bundle
 
