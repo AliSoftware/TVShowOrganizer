@@ -2,6 +2,7 @@
 
 require 'net/http'
 require 'json'
+require 'uri'
 
 class TheTVDB
   # attr_reader :api_key, :jwt, :http
@@ -62,7 +63,7 @@ class TheTVDB
   def find_shows_for_name(query)
     return nil unless query
     
-    data, _ = request("/search/series?name=#{URI.escape(query)}")
+    data, _ = request("/search/series?name=#{CGI.escape(query)}")
     return nil unless data
     data.map do |d|
       {

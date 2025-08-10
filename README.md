@@ -1,6 +1,6 @@
 # TV Show Organizer
 
-This is a little ruby tool to automatically rename TV Show video files (according to my naming preference) and move them to the appropriate directory (appropriate for XBMC/Kodi).
+This is a little ruby tool to automatically rename TV Show video files (according to my naming preference) and move them to the appropriate directory for Plex to index.
 
 ## Features
 
@@ -11,9 +11,6 @@ This took takes an input folder and output folder, then it:
   _(To do that, it expects the file name to match `Show.Name.S01E02.Anything.ext`)_
 * fetches the name of the episode using [TheTVDB](http://thetvdb.com) [API](http://thetvdb.com/wiki/index.php?title=Programmers_API)
 * renames the file to `Show Name - 1x02 - Episode Title.ext` and moves it to the subfolder `Show Name/Season 1/` of the output folder.
-
-Once every video files of the input folder have been moved and renamed appropriately, it finally uses [Kodi](http://kodi.tv/about/)'s [JSON-RPC API](http://kodi.wiki/view/JSON-RPC_API/v6) to refresh the Kodi database, so that those shows appear in your Kodi library.
-
 
 ## Usage
 
@@ -29,7 +26,7 @@ TVShowsOrganizer::run_query(:query => 'Game of Thrones')
 # Add a show to the shows.yml database
 TVShowsOrganizer::add_show(:name => 'Game of Thrones', :id => '121361')
 # Move video files to destination, renaming them appropriately.
-TVShowsOrganizer::move_files(source_dir, dest_dir, :interactive => true, :kodi_auth => 'login:pass')
+TVShowsOrganizer::move_files(source_dir, dest_dir, :interactive => true)
 ```
 
 ### Invoke from the command line
@@ -42,5 +39,5 @@ $ ./tvshows_organizer.rb -q "House of Cards"
 # Add a show to the shows.yml database: use query + interactive mode
 $ ./tvshows_organizer.rb -qi "House of Cards"
 # Move video files to destination, renaming them appropriately.
-$ ./tvshows_organizer.rb -i source_dir dest_dir --kodi login:pass
+$ ./tvshows_organizer.rb -i source_dir dest_dir
 ```

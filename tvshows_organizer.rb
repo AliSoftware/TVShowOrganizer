@@ -1,11 +1,13 @@
 #!/usr/bin/env ruby
 
+ENV["BUNDLE_GEMFILE"] ||= File.join(__dir__, 'Gemfile')
+require 'bundler/setup'
 
+require 'date'
 require 'yaml'
 require 'optparse'
 require File.expand_path('log_module', File.dirname(__FILE__))
 require File.expand_path('file_mover', File.dirname(__FILE__))
-require File.expand_path('kodi', File.dirname(__FILE__))
 require File.expand_path('thetvdb', File.dirname(__FILE__))
 
 CONFIG_FILE = File.expand_path('shows.yml', File.dirname(__FILE__))
@@ -64,7 +66,6 @@ module TVShowsOrganizer
   # @param [Hash<Symbol,String>] options
   #        The hash containing the parameters for the query.
   #        This hash may contain the following keys:
-  #         :kodi         : Hash with keys :credentials ('login:pass'), :host and :port, to use for Kodi's refresh request
   #         :interactive  : If true, prompt to add the show to `shows.yml`
   #         :dry_run      : If true, no file will actually be moved,
   #                         but logs will be printed so you can check which
@@ -82,10 +83,7 @@ module TVShowsOrganizer
   
     files_count = fm.move_finished_downloads()
 
-    Log::title('Finished!')
-
-    kodi_params = options[:kodi]
-    Kodi::refresh(kodi_params[:credentials], kodi_params[:host], kodi_params[:port]) if files_count>0 && !kodi_params.nil?
+    Log::title("Finished! Moved #{files_count} files.")
   end
   
   # Return the local file corresponding to the last episode of the show for the given show path
@@ -199,14 +197,6 @@ if __FILE__ == $0
     end
     opts.on('--local', %q(When used with --list, also log the last local episode)) do
       options[:local] = true
-    end
-    opts.on('--kodi login:pass@host:port', %q(The login/password and host/port to use to access the Kodi HTTP interface)) do |kodi_string|
-      (login_pass, host_port, rest) = kodi_string.split('@')
-      Log::error("Too many '@' in the Kodi parameters!") unless rest.nil?
-      (host, port, rest) = host_port.split(':')
-      Log::error("Too many ':' in the host:port part of Kodi parameters!") unless rest.nil?
-      Log::error("Port should be numeric") unless port.to_i > 0
-      options[:kodi] = { :credentials => login_pass, :host => host, :port => port.to_i }
     end
 
     opts.on('-h', '--help') { puts opts; exit 1 }

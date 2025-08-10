@@ -33,7 +33,7 @@ class FileMover
   # @return [String]
   #
   def sanitize(filename)
-    new_name = I18n.transliterate(filename, '_')
+    I18n.transliterate(filename, replacement: '_')
       .gsub('?','')
       .gsub(':',' -')
       .gsub('&','+')
@@ -86,11 +86,11 @@ class FileMover
       show_dir = season_dir.parent
       unless show_dir.directory?
         Log::info("Creating directory for #{show_dir.basename}")
-        show_dir.mkdir()
+        show_dir.mkdir(0775) unless @dry_run
       end
       unless season_dir.directory?
         Log::info("Creating directory for #{season_dir.basename}")
-        season_dir.mkdir()
+        season_dir.mkdir(0775) unless @dry_run
       end
       if File.exist?(target_path)
         Log::error("File #{target_path.to_s} already exists.")
@@ -98,6 +98,7 @@ class FileMover
       else
         Log::success("Moving to #{target_path.to_s}")
         FileUtils.mv(filename, target_path.to_s) unless @dry_run
+        target_path.chmod(0664) unless @dry_run
         true
       end
     else

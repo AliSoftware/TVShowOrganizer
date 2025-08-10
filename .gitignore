@@ -1,2 +1,8 @@
-thetvdb.apikey
+# MacOS
 .DS_Store
+
+# Ruby
+vendor/bundle
+
+# Secrets
+thetvdb.apikey
