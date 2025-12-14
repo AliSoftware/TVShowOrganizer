@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 
+require 'etc'
 require 'pathname'
 require 'fileutils'
 require 'i18n'
@@ -97,8 +98,12 @@ class FileMover
         false
       else
         Log::success("Moving to #{target_path.to_s}")
-        FileUtils.mv(filename, target_path.to_s) unless @dry_run
-        target_path.chmod(0664) unless @dry_run
+        unless @dry_run
+          FileUtils.mv(filename, target_path.to_s)
+          me = Etc.getpwuid
+          target_path.chown(me.uid, me.gid)
+          target_path.chmod(0664)
+        end
         true
       end
     else
